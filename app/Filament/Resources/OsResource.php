@@ -66,7 +66,8 @@ class OsResource extends Resource
                             ->relationship()
                             ->schema([
                                 Forms\Components\Select::make('produto_id')
-                                    ->relationship('produtos', 'nome')
+                                    ->label('Produto')
+                                    ->options(Produto::pluck('nome', 'id'))
                                     ->placeholder('Selecione um produto')
                                     ->loadingMessage('Carregando produtos...')
                                     ->searchPrompt('Buscar produto...')
@@ -74,11 +75,24 @@ class OsResource extends Resource
                                     ->preload()
                                     ->columnSpan(4)
                                     ->searchable()
+                                    ->required()
                                     ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
                                         $produto = Produto::find($get('produto_id'));
                                         $set('subtotal', $produto->valor);
                                     }),
                                 Forms\Components\TextInput::make('quantidade')
+                                    ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+
+                                        if ($get('produto_id') === null) return;
+                                        // multiplicar o valor do produto pela quantidade
+                                        $produto = Produto::find($get('produto_id'));
+
+                                        if ($get('quantidade') < 1) $set('quantidade', 1);
+
+                                        if ($produto) $set('subtotal', $produto->valor * $get('quantidade'));
+
+                                        $set('subtotal', $produto->valor * $get('quantidade'));
+                                    })
                                     ->integer()
                                     ->minValue(1)
                                     ->default(1)
