@@ -12,6 +12,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Leandrocfe\FilamentPtbrFormFields\Money;
 
 class OsResource extends Resource
@@ -22,6 +23,8 @@ class OsResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $produtos = Produto::get();
+
         return $form
             ->schema([
                 Forms\Components\Section::make('Order de Serviço')
@@ -66,8 +69,13 @@ class OsResource extends Resource
                             ->relationship()
                             ->schema([
                                 Forms\Components\Select::make('produto_id')
+                                    ->relationship('produto', 'nome')
+                                    ->options(
+                                        $produtos->mapWithKeys(function (Produto $produto) {
+                                            return [$produto->id => sprintf('%s - %s', $produto->nome, number_format($produto->valor, 2, ',', '.'))];
+                                        })
+                                    )
                                     ->label('Produto')
-                                    ->options(Produto::pluck('nome', 'id'))
                                     ->placeholder('Selecione um produto')
                                     ->loadingMessage('Carregando produtos...')
                                     ->searchPrompt('Buscar produto...')
@@ -78,7 +86,7 @@ class OsResource extends Resource
                                     ->required()
                                     ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
                                         $produto = Produto::find($get('produto_id'));
-                                        $set('subtotal', $produto->valor);
+                                        $set('subtotal', number_format($produto->valor, 2, ',', '.'));
                                     }),
                                 Forms\Components\TextInput::make('quantidade')
                                     ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
@@ -91,7 +99,9 @@ class OsResource extends Resource
 
                                         if ($produto) $set('subtotal', $produto->valor * $get('quantidade'));
 
-                                        $set('subtotal', $produto->valor * $get('quantidade'));
+                                        $subtotal = $produto->valor * $get('quantidade');
+
+                                        $set('subtotal', number_format($subtotal, 2, ',', ''));
                                     })
                                     ->integer()
                                     ->minValue(1)
@@ -112,19 +122,20 @@ class OsResource extends Resource
                             ->displayFormat('d/m/Y')
                             ->default(date(now()))
                             ->native(false)
+                            ->closeOnDateSelection()
                             ->required(),
                         Forms\Components\Select::make('status')
                             ->columnSpan(2)
-                            ->default('Aberto')
+                            ->default('aberto')
                             ->options([
-                                'Aberto' => 'Aberto',
-                                'Fechado' => 'Fechado',
-                                'Cancelado' => 'Cancelado',
-                                'Aguardando peças' => 'Aguardando peças',
-                                'Aguardando aprovação' => 'Aguardando aprovação',
-                                'Aguardando orçamento' => 'Aguardando orçamento',
-                                'Aguardando retirada' => 'Aguardando retirada',
-                                'Aguardando entrega' => 'Aguardando entrega',
+                                'aberto' => 'Aberto',
+                                'fechado' => 'Fechado',
+                                'cancelado' => 'Cancelado',
+                                'aguardando_peca' => 'Aguardando peças',
+                                'aguardando_aprovacao' => 'Aguardando aprovação',
+                                'aguardando_orcamento' => 'Aguardando orçamento',
+                                'aguardando_retirada' => 'Aguardando retirada',
+                                'aguardando_entrega' => 'Aguardando entrega',
                             ])
                             ->placeholder('Selecione um status')
                             ->required(),
@@ -139,32 +150,102 @@ class OsResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('funcionario.id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('cliente.id')
+                Tables\Columns\TextColumn::make('cliente.nome')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('data')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i:s')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'aberto' => 'Aberto',
+                        'fechado' => 'Fechado',
+                        'cancelado' => 'Cancelado',
+                        'aguardando_peca' => 'Aguardando peças',
+                        'aguardando_aprovacao' => 'Aguardando aprovação',
+                        'aguardando_orcamento' => 'Aguardando orçamento',
+                        'aguardando_retirada' => 'Aguardando retirada',
+                        'aguardando_entrega' => 'Aguardando entrega',
+                    })
+                    ->color(fn(string $state): string => match ($state) {
+                        'aberto' => 'success',
+                        'fechado' => 'gray',
+                        'cancelado' => 'danger',
+                        'aguardando_peca', 'aguardando_orcamento', 'aguardando_retirada', 'aguardando_entrega' => 'warning',
+                        'aguardando_aprovacao' => 'info',
+                    })
+                    ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('valor_total')
-                    ->numeric()
+                    ->label('Total R$')
+                    ->numeric(
+                        decimalPlaces: 2,
+                        decimalSeparator: ',',
+                        thousandsSeparator: '.'
+                    )
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Criado em')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Atualizado em')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
-            ])
+                Tables\Filters\SelectFilter::make('cliente_id')
+                    ->relationship('cliente', 'nome')
+                    ->label('Cliente')
+                    ->placeholder('Todos os clientes'),
+                // Filtrar por data
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->displayFormat('d/m/Y')
+                            ->native(false)
+                            ->label('Data de criação')
+                            ->placeholder('Selecione uma data')
+                            ->closeOnDateSelection()
+                            ->required(),
+                        Forms\Components\DatePicker::make('until')
+                            ->displayFormat('d/m/Y')
+                            ->format('d/m/Y')
+                            ->native(false)
+                            ->label('Até')
+                            ->placeholder('Selecione uma data')
+                            ->closeOnDateSelection()
+                            ->required(),
+                    ])->query(function (Builder $query, array $data) {
+                        $query->when(filled($data['from'] && filled($data['until'])), function (Builder $q) use ($data) {
+                            $dataFrom = \Illuminate\Support\Carbon::parse($data['from'])->startOfDay()->toDateTimeString();
+                            $dataUntil = \Illuminate\Support\Carbon::parse($data['until'])->endOfDay()->toDateTimeString();
+
+                            return $q->whereBetween('created_at', [
+                                $dataFrom,
+                                $dataUntil,
+                            ]);
+
+                        });
+                    }),
+
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'aberto' => 'Aberto',
+                        'fechado' => 'Fechado',
+                        'cancelado' => 'Cancelado',
+                        'aguardando_peca' => 'Aguardando peças',
+                        'aguardando_aprovacao' => 'Aguardando aprovação',
+                        'aguardando_orcamento' => 'Aguardando orçamento',
+                        'aguardando_retirada' => 'Aguardando retirada',
+                        'aguardando_entrega' => 'Aguardando entrega',
+                    ])
+                    ->label('Status')
+                    ->placeholder('Todos os status'),
+            ], layout: Tables\Enums\FiltersLayout::AboveContentCollapsible)
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -200,6 +281,6 @@ class OsResource extends Resource
             return $total + ($valores[$item['produto_id']] * $item['quantidade']);
         }, 0);
 
-        $set('valor_total', $total);
+        $set('valor_total', number_format($total, 2, ',', '.'));
     }
 }

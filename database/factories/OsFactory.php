@@ -23,7 +23,7 @@ class OsFactory extends Factory
             'cliente_id' => Cliente::factory(),
             'descricao' => $this->faker->text,
             'data' => $this->faker->dateTime,
-            'status' => $this->faker->randomElement(['aberto', 'fechado', 'cancelado']),
+            'status' => $this->faker->randomElement(['aberto', 'fechado', 'cancelado', 'aguardando_peca', 'aguardando_aprovacao', 'aguardando_orcamento', 'aguardando_retirada', 'aguardando_entrega']),
             'valor_total' => $this->faker->randomNumber(6),
         ];
     }

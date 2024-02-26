@@ -10,6 +10,11 @@ class Item extends Model
 {
     use HasFactory;
 
+    public function produto(): BelongsTo
+    {
+        return $this->belongsTo(Produto::class);
+    }
+
     public function os(): BelongsTo
     {
         return $this->belongsTo(Os::class);

@@ -18,7 +18,7 @@ return new class extends Migration {
             $table->foreignIdFor(Cliente::class)->constrained()->cascadeOnDelete();
             $table->text('descricao');
             $table->dateTime('data');
-            $table->enum('status', ['aberto', 'fechado', 'cancelado']);
+            $table->enum('status', ['aberto', 'fechado', 'cancelado', 'aguardando_peca', 'aguardando_aprovacao', 'aguardando_orcamento', 'aguardando_retirada', 'aguardando_entrega']);
             $table->integer('valor_total');
             $table->timestamps();
         });
