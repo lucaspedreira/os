@@ -73,9 +73,14 @@ class OsResource extends Resource
                                     ->noSearchResultsMessage('Produto encontrado')
                                     ->preload()
                                     ->columnSpan(4)
-                                    ->searchable(),
+                                    ->searchable()
+                                    ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                        $produto = Produto::find($get('produto_id'));
+                                        $set('subtotal', $produto->valor);
+                                    }),
                                 Forms\Components\TextInput::make('quantidade')
                                     ->integer()
+                                    ->minValue(1)
                                     ->default(1)
                                     ->required(),
                                 Money::make('subtotal')
@@ -182,17 +187,5 @@ class OsResource extends Resource
         }, 0);
 
         $set('valor_total', $total);
-    }
-
-    public static function updateSubtotal(Forms\Get $get, Forms\Set $set)
-    {
-        $produtosSelecionados = collect($get('itens'))->filter(fn($item) => !empty($item['produto_id']) && !empty($item['quantidade']));
-        $valores = Produto::find($produtosSelecionados->pluck('produto_id'))->pluck('valor', 'id');
-
-        $subtotal = $produtosSelecionados->reduce(function ($subtotal, $item) use ($valores) {
-            return $subtotal + ($valores[$item['produto_id']] * $item['quantidade']);
-        }, 0);
-
-        $set('subtotal', $subtotal);
     }
 }
