@@ -105,6 +105,15 @@ class OsResource extends Resource
                                     })
                                     ->integer()
                                     ->minValue(1)
+                                    ->maxValue(function (Forms\Get $get, Forms\Set $set) {
+                                        $produto = Produto::find($get('produto_id'));
+                                        if ($get('quantidade') > $produto?->quantidade) return $set('quantidade', $produto->quantidade ?? 1);
+                                        $subtotal = $produto->valor * $get('quantidade');
+
+                                        $set('subtotal', number_format($subtotal, 2, ',', ''));
+
+                                        return $produto->quantidade ?? 1;
+                                    })
                                     ->default(1)
                                     ->required(),
                                 Money::make('subtotal')
