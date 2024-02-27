@@ -18,7 +18,8 @@ class FornecedorResource extends Resource
 {
     protected static ?string $model = Fornecedor::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-cube';
+    protected static ?string $navigationLabel = 'Fornecedores';
 
     public static function form(Form $form): Form
     {

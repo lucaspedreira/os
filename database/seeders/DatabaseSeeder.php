@@ -15,15 +15,15 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class,
-            ClienteSeeder::class,
-            FornecedorSeeder::class,
-            FuncionarioSeeder::class,
-            EnderecoSeeder::class,
-            MarcaSeeder::class,
-            ProdutoSeeder::class,
-            OsSeeder::class,
-            ItemSeeder::class,
-            ContaReceberSeeder::class,
+//            ClienteSeeder::class,
+//            FornecedorSeeder::class,
+//            FuncionarioSeeder::class,
+//            EnderecoSeeder::class,
+//            MarcaSeeder::class,
+//            ProdutoSeeder::class,
+//            OsSeeder::class,
+//            ItemSeeder::class,
+//            ContaReceberSeeder::class,
         ]);
     }
 }

@@ -19,7 +19,8 @@ class OsResource extends Resource
 {
     protected static ?string $model = Os::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-puzzle-piece';
+    protected static ?string $navigationLabel = 'Ordem de Serviço';
 
     public static function form(Form $form): Form
     {
