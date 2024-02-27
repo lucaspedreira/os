@@ -67,6 +67,7 @@ class OsResource extends Resource
                             ->columns(6)
                             ->hiddenLabel()
                             ->relationship()
+                            ->defaultItems(0)
                             ->schema([
                                 Forms\Components\Select::make('produto_id')
                                     ->relationship('produto', 'nome')
@@ -90,32 +91,25 @@ class OsResource extends Resource
                                     }),
                                 Forms\Components\TextInput::make('quantidade')
                                     ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
-
                                         if ($get('produto_id') === null) return;
-                                        // multiplicar o valor do produto pela quantidade
+
                                         $produto = Produto::find($get('produto_id'));
+                                        if (!$produto) return;
 
-                                        if ($get('quantidade') < 1) $set('quantidade', 1);
+                                        // Ajuste da quantidade baseada no estoque disponível
+                                        $quantidadeAjustada = min($get('quantidade'), $produto->quantidade);
+                                        $set('quantidade', $quantidadeAjustada);
 
-                                        if ($produto) $set('subtotal', $produto->valor * $get('quantidade'));
-
-                                        $subtotal = $produto->valor * $get('quantidade');
-
-                                        $set('subtotal', number_format($subtotal, 2, ',', ''));
+                                        // Calcula o subtotal com a quantidade ajustada
+                                        $subtotal = $produto->valor * $quantidadeAjustada;
+                                        $set('subtotal', number_format($subtotal, 2, ',', '.'));
                                     })
                                     ->integer()
                                     ->minValue(1)
-                                    ->maxValue(function (Forms\Get $get, Forms\Set $set) {
-                                        $produto = Produto::find($get('produto_id'));
-                                        if ($get('quantidade') > $produto?->quantidade) return $set('quantidade', $produto->quantidade ?? 1);
-                                        $subtotal = $produto->valor * $get('quantidade');
-
-                                        $set('subtotal', number_format($subtotal, 2, ',', ''));
-
-                                        return $produto->quantidade ?? 1;
-                                    })
+                                    // O maxValue não precisa de uma função, pois o ajuste é feito acima.
                                     ->default(1)
                                     ->required(),
+
                                 Money::make('subtotal')
                                     ->readOnly(),
                             ])
